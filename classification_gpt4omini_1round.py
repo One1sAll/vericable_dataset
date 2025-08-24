@@ -112,7 +112,7 @@ def process_data(input_file, start_idx, end_idx):
                         "label": "",
                         "timeseries": data["timeseries"]
                     }
-                    
+                     
                     if ts_count == 1:
                         f_uni.write(json.dumps(output_data) + '\n')
                         print(f"ID {idx}: 写入univariate.json (分类: {category})")

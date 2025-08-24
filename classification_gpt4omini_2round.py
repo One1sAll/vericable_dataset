@@ -124,7 +124,7 @@ def process_secondary(input_file, output_file, start_idx, end_idx):
                         2: "Scenario attribution", 
                         3: "Inferential calculation",
                         4: "Others"
-                    }
+                    } 
                     
                     data["task"] = task_map[final_category]
 

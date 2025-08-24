@@ -163,7 +163,7 @@ def process_jsonl_label(input_file: str, output_file: str, start_idx: int, end_i
                         print(f"ID {id}: 未知任务类型 {task}，跳过")
                         continue
                     
-                    # 调用对应的提取函数
+                    # 调用对应的提取函数 
                     extractor = task_to_extractor[task]
                     label = extractor(output)
                     if label == None:
