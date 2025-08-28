@@ -83,6 +83,7 @@ def process_secondary(input_file, output_file, start_idx, end_idx):
                     data = json.loads(line.strip())
                     question = data["question"]
                     original_task = data["task"]
+                    id = data["id"]
 
                     # 获取原始类别编号（1/2/3）
                     if original_task not in task_to_category:
