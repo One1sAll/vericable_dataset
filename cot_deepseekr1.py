@@ -100,7 +100,7 @@ Integrate the entire analytical process, clearly presenting the complete logic f
 **Output Format**:
 Step 6 Summarizing the thinking process to output the answer: 
 [Description] <Summary of the reasoning process across all steps.>
-[Judgment] <Final answer (e.g., calculated value X).>
+[Judgment] <Final answer. (e.g., calculated value X) (The calculated numerical value must be in digit form.)>
 '''
 
 template_Scenario_attribution = '''

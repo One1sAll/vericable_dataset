@@ -57,6 +57,25 @@ def generate_cot_field(cot_content: str, step6_label: str | None) -> str:
     answer_part = f"The answer is {step6_label}." if step6_label else "The answer is unknown."
     return f"<think>{cot_clean}</think><ANSWER>{answer_part}</ANSWER>"
 
+
+def extract_pure_number(text: str) -> int | None:
+    """从文本中提取纯数值（支持带单位/符号的情况）"""
+    if not isinstance(text, str):
+        text = str(text)
+    
+    # 提取所有数字字符（保留负号和小数点）
+    numeric_str = re.sub(r"[^\d.-]", "", text.strip())
+    
+    # 过滤无效情况
+    if not numeric_str or numeric_str in [".", "-", "-."]:
+        return None
+    
+    # 转换为整数（处理小数情况）
+    try:
+        return int(float(numeric_str))
+    except ValueError:
+        return None
+
 def process_jsonl(input_file: str, correct_file: str, wrong_file: str) -> None:
     total_count = 0
     correct_count = 0
@@ -85,6 +104,7 @@ def process_jsonl(input_file: str, correct_file: str, wrong_file: str) -> None:
                         
                     label = data["label"]
                     id = data["id"]
+                    task = data["task"].strip()
                     cot_content = data["cot_deepseekr1"]
                     
                     # 提取stepx_label, 生成cot字段
@@ -114,14 +134,23 @@ def process_jsonl(input_file: str, correct_file: str, wrong_file: str) -> None:
                     if not label_found:
                         new_data.update(new_fields)
                         
-                        
                     # 推理最终答案是否正确,忽略大小写
                     def normalize_text(text: str) -> str:
                         return re.sub(r"[^\w\s]", "", text.strip().lower()).replace(" ", "")
 
                     norm_base = normalize_text(label)
                     norm_step6 = normalize_text(step6_label)
-                    is_match = norm_step6 in norm_base or norm_base in norm_step6
+                    if task == "Inferential calculation":
+                        # 提取出数值进行比较
+                        step6_num = extract_pure_number(norm_step6)
+                        base_num = extract_pure_number(norm_base)
+                        # 只有数值相等才视为匹配
+                        if step6_num is not None and base_num is not None:
+                            is_match = (step6_num == base_num)
+                        else:
+                            is_match = False
+                    else:
+                        is_match = norm_step6 in norm_base or norm_base in norm_step6
 
                     # 分别输出
                     if is_match:
