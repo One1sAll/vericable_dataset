@@ -5,7 +5,7 @@ from openai import OpenAI
 
 # 配置OpenAI客户端
 gpt_model = "deepseek-r1"
-OPENAI_API_KEY = "sk-ahn2O7D4bNSJZOqXhtc9coszRtueGMWuqkWsm5aBBEEewEoO"  # 替换为你的API密钥
+OPENAI_API_KEY = ""  # 替换为你的API密钥
 client = OpenAI(api_key=OPENAI_API_KEY, base_url="https://api.chatanywhere.tech/v1")
 
 # 大模型请求函数
