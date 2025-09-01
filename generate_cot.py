@@ -3,6 +3,10 @@ import json
 from typing import List, Dict
 from word2number import w2n 
 
+'''
+人工核查完stepx label是否为空+正确性后，再组成我们的cot，避免反复修改
+'''
+
 def generate_cot_field(cot_content: str, step6_label: str | None) -> str:
     cot_clean = cot_content.strip() if isinstance(cot_content, str) else ""
     
