@@ -43,7 +43,14 @@ def parse_cot_steps(cot_content: str) -> Dict[str, str | None]:
     step6_pattern = r"Step 6.*?(?:\*\*)?\s*\[Judgment\]\s*(?:\*\*)?\s*([\s\S]+?)\s*$"
     match = re.search(step6_pattern, cot_clean, re.IGNORECASE)
     if match:
-        step_labels["step6_label"] = match.group(1).strip().replace("**", "").capitalize()
+        step6_tmp = match.group(1).strip().replace("**", "").capitalize()
+    # 移除句末的标点
+    if step6_tmp and isinstance(step6_tmp, str):
+        # 匹配字符串末尾的一个英文句号/分号，替换为空
+        step6_clean = re.sub(r'[.;]$', '', step6_tmp).strip()
+    else:
+        step6_clean = "unknown"
+    step_labels["step6_label"] = step6_clean
 
     # 统一格式：去除多余符号，标准化空值
     for key in step_labels:
@@ -51,11 +58,6 @@ def parse_cot_steps(cot_content: str) -> Dict[str, str | None]:
             step_labels[key] = None
             
     return step_labels
-
-def generate_cot_field(cot_content: str, step6_label: str | None) -> str:
-    cot_clean = cot_content.strip() if isinstance(cot_content, str) else ""
-    answer_part = f"The answer is {step6_label}." if step6_label else "The answer is unknown."
-    return f"<think>{cot_clean}</think><ANSWER>{answer_part}</ANSWER>"
 
 
 def extract_pure_number(text: str) -> int | None:
@@ -107,7 +109,7 @@ def process_jsonl(input_file: str, correct_file: str, wrong_file: str) -> None:
                     task = data["task"].strip()
                     cot_content = data["cot_deepseekr1"]
                     
-                    # 提取stepx_label, 生成cot字段
+                    # 提取stepx_label
                     step_labels = parse_cot_steps(cot_content)
                     
                     # 检查是否有空白标签并记录
@@ -117,10 +119,9 @@ def process_jsonl(input_file: str, correct_file: str, wrong_file: str) -> None:
                             print(f" ID {id} : {step} 标签为none或空白")
 
                     step6_label = step_labels.get("step6_label") or "unknown"
-                    cot_field = generate_cot_field(cot_content, step6_label)
 
-                    # 准备要插入的新字段（cot + stepx字段）
-                    new_fields = {**step_labels, "cot": cot_field}
+                    # 准备要插入的新字段（stepx字段）
+                    new_fields = {**step_labels}
                     # 创建新字典并保持字段顺序，在label后插入新字段
                     new_data = {}
                     label_found = False  # 标记是否已插入新字段
@@ -190,8 +191,8 @@ def process_jsonl(input_file: str, correct_file: str, wrong_file: str) -> None:
 if __name__ == "__main__":
 
     input_path = "./univariate_0_2000_filtered_labeled_cot.jsonl"
-    correct_path = "./univariate_0_2000_filtered_labeled_cot_stepLabeled_correct.jsonl"       # 匹配成功
-    wrong_path = "./univariate_0_2000_filtered_labeled_cot_stepLabeled_wrong.jsonl" # 匹配失败
+    correct_path = "./univariate_0_2000_filtered_labeled_cot_stepLabeled_correct_test.jsonl"       # 匹配成功
+    wrong_path = "./univariate_0_2000_filtered_labeled_cot_stepLabeled_wrong_test.jsonl" # 匹配失败
     
     # 清空输出文件
     open(correct_path, 'w').close()
