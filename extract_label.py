@@ -56,19 +56,24 @@ def extract_inferential_label(output: str) -> str | None:
     infer_patterns = [
         r"I've found that there are (\w+|\d+)",
         r"I've found that there is (\w+|\d+)",
+        r"I've found that there were (\w+|\d+)",
+        r"I've found that there was (\w+|\d+)",
         r"I've found (\w+|\d+)",
         r"I've identified (\w+|\d+)",
         r"there is (\w+|\d+)",
-        r"there are (\w+|\d+)",
+        r"there are (?:approximately|about|roughly) (\w+|\d+)",
         r"there was (\w+|\d+)",
-        r"there were (\w+|\d+)",
+        r"there were (?:approximately|about|roughly) (\w+|\d+)",
         r"it was observed that (\w+|\d+)",
-        r"the number of .*? is (\w+|\d+)"
+        r"the number of .*? is (\w+|\d+)",
+        r"it took (\w+|\d+)",
+        r"It took (\w+|\d+)",
+        r"(\w+|\d+) \w+(?: \w+)* can be identified"
         
         # 优先级靠后
+        r"occurred (\w+|\d+)"
         r"the time series shows (\w+|\d+)",
         r"(\w+|\d+) times\b",
-        r"on (\w+|\d+)", 
         r"(\w+|\d+) day\b",
         r"(\w+|\d+) days\b",
         r"(\w+|\d+) minute\b",
@@ -77,13 +82,20 @@ def extract_inferential_label(output: str) -> str | None:
         r"(\w+|\d+) hours\b",
         r"(\w+|\d+) second\b",
         r"(\w+|\d+) seconds\b",
+        r"(\w+|\d+) point\b",
+        r"(\w+|\d+) points\b",
+        r"on (\w+|\d+)", 
 
     ]
 
     special_map = {
         "no": "0",
+        "zero": "0",
+        "none": "0",
         "a": "1",
         "an": "1",
+        "once": "1",
+        "twice": "2"
     }
     # 遍历匹配
     for pattern in infer_patterns:
@@ -167,7 +179,11 @@ def process_jsonl_label(input_file: str, output_file: str, start_idx: int, end_i
                     extractor = task_to_extractor[task]
                     label = extractor(output)
                     if label == None:
-                        raise EmptyLabelError(f"ID {id}: 任务 '{task}' 提取到空字符串标签")
+                        print(f"ID {id}: 任务 '{task}' 提取到空字符串标签")
+                        wrong_id.append(id)
+                    if task == "Inferential calculation" and not str(label).isdigit():
+                        print(f"ID {id}: 任务 {task}，提取标签为非数字: {data['label']}")
+                        wrong_id.append(id)
                     
                     # 处理timeseries，每个数值只保留4位小数
                     data["timeseries2"] = round_timeseries_values(timeseries)
@@ -183,9 +199,6 @@ def process_jsonl_label(input_file: str, output_file: str, start_idx: int, end_i
                 except Exception as e:
                     print(f"ID {id}: 处理错误 {str(e)}，跳过")
                     wrong_id.append(id)
-                except EmptyLabelError as e:
-                    print(f"{str(e)}，跳过")
-                    wrong_id.append(id)
                 
             print(f"失败 {len(wrong_id)} 条. 失败样本ID: {wrong_id}")
             print("已将timeseries中的数值最多保留4位小数，保留在timeseries2字段中")
@@ -194,11 +207,11 @@ def process_jsonl_label(input_file: str, output_file: str, start_idx: int, end_i
 
 if __name__ == "__main__":
 
-    input_path = "./univariate_0_2000_filtered.jsonl"
-    output_path = "./univariate_0_2000_filtered_labeled.jsonl"
+    input_path = "./univariate_classified_2001_6000.jsonl"
+    output_path = "./univariate_classified_2001_6000_testttt.jsonl"
     
-    start_index = 330  # 起始索引(包含)
-    end_index = 600  # 结束索引(包含)
+    start_index = 0  # 起始索引(包含)
+    end_index = 1300  # 结束索引(包含)
     
     # 清空输出文件
     open(output_path, 'w').close()
