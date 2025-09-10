@@ -146,25 +146,45 @@ def process_jsonl_file(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as infile, \
          open(output_file, 'w', encoding='utf-8') as outfile:
         
+        wrong_id = []
         for line in infile:
             data = json.loads(line.strip())
             
             # 提取所需字段
             task = data.get('task', '')
             question = data.get('question', '')
-            timeseries2 = data.get('timeseries2', [])
+            timeseries2 = data.get('timeseries', [])
             id = data.get('id', '未知')
-            
-            # 获取时间序列数据（假设timeseries2是一个二维列表，取第一个元素）
-            ts_data = timeseries2[0] if isinstance(timeseries2[0], list) else timeseries2
-            
-            # 将时间序列数据转换为字符串
-            ts_str = ', '.join(map(str, ts_data))
-            
-            # 替换question中的<ts><ts/>标记
-            updated_question = question.replace('<ts><ts/>', ts_str)
-            # print(updated_question)
-            
+
+            if isinstance(timeseries2, list) and all(isinstance(seq, list) for seq in timeseries2):
+                # 统计变量数量和标签数量
+                var_count = len(timeseries2)
+                ts_count = question.count('<ts><ts/>')
+
+                # 检查数量匹配
+                if var_count == 0:
+                    print("错误：时间序列为空列表")
+                    wrong_id.append(id)
+                    continue
+                elif ts_count != var_count:
+                    print(f"警告：变量数量({var_count})与<ts><ts/>标签数量({ts_count})不匹配")
+                    wrong_id.append(id)
+                    continue
+                else:
+                    updated_question = question  # 数量匹配，正常替换
+
+                # 按顺序替换每个标签（无论数量是否匹配，都尝试替换已有的变量）
+                for seq in timeseries2:
+                    seq_str = ', '.join(map(str, seq))
+                    updated_question = updated_question.replace('<ts><ts/>', seq_str, 1)  # 每次替换1个
+            else:
+                # 格式错误（非列表或内层有非列表元素）
+                updated_question = question.replace('<ts><ts/>', "时间序列格式不符合要求（需为[[...], [...]]形式）")
+                print("数据格式错误：请提供列表嵌套列表的格式，如[[数据1], [数据2]]")
+                wrong_id.append(id)
+                continue
+
+
             # 根据任务类型选择模板
             if task == "Anomaly detection":
                 prompt = updated_question + template_Anomaly_detection
@@ -172,7 +192,6 @@ def process_jsonl_file(input_file, output_file):
                 prompt = updated_question + template_Inferential_calculation
             elif task == "Scenario attribution":
                 prompt = updated_question + template_Scenario_attribution
-            
 
             print(f"处理ID {id}，任务: {task}")
             cot_response = gpt_chat(prompt)
@@ -187,12 +206,13 @@ def process_jsonl_file(input_file, output_file):
             
             json.dump(new_data, outfile)
             outfile.write('\n')
+        
+        print(f'处理失败的样本ID: {wrong_id}')
             
-            time.sleep(1)
 
 
 if __name__ == "__main__":
-    input_filename = "./univariate_0_2000_filtered_labeled.jsonl"
-    output_filename = "./univariate_0_2000_filtered_labeled_cot.jsonl"
+    input_filename = "./multivariate_classified_2001_6000 copy 2.jsonl"
+    output_filename = "./multivariate_classified_2001_6000_cot.jsonl"
     
     process_jsonl_file(input_filename, output_filename)
